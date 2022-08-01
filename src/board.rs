@@ -1,32 +1,73 @@
-use crate::piece::{Color, Piece};
+use crate::{
+    piece::{Color, Piece},
+    ply::Ply,
+    square::Square,
+};
 
-type PositionMatrix = [PositionRow; 8];
-type PositionRow = [Position; 8];
+type Matrix = [Row; 8];
+type Row = [Square; 8];
 
+#[derive(Debug, Clone)]
 pub struct Board {
-    inner: PositionMatrix,
+    inner: Matrix,
 }
 
 impl Board {
     pub fn new() -> Self {
-        let mut inner = [[Default::default(); 8]; 8];
+        let mut inner = Self::construct_matrix();
 
-        Self::init_positions(&mut inner);
+        Self::populate_piece_row(&mut inner[0], Color::White);
+        Self::populate_pawns_row(&mut inner[1], Color::White);
 
-        Self::populate_piece_row(&mut inner[0], Color::Black);
-        Self::populate_pawns_row(&mut inner[1], Color::Black);
-
-        Self::populate_pawns_row(&mut inner[6], Color::White);
-        Self::populate_piece_row(&mut inner[7], Color::White);
+        Self::populate_pawns_row(&mut inner[6], Color::Black);
+        Self::populate_piece_row(&mut inner[7], Color::Black);
 
         Self { inner }
+    }
+
+    pub fn square(&self, row: usize, col: usize) -> &Square {
+        &self.inner[row - 1][col - 1]
+    }
+
+    pub fn piece(&self, piece_id: u64) -> Option<&Square> {
+        for row in &self.inner {
+            for square in row {
+                if let Some(piece) = square.piece {
+                    if piece.id == piece_id {
+                        return Some(square);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    pub fn make_ply(&mut self, ply: Ply) {
+        let from_piece = ply
+            .from()
+            .piece
+            .expect("Invalid ply, piece not in from square.");
+
+        self.inner[ply.from().row() - 1][ply.from().col() - 1].piece = None;
+        self.inner[ply.to().row() - 1][ply.to().col() - 1].piece = Some(from_piece);
+    }
+
+    pub fn get_relative_square(&self, square: &Square, row: isize, col: isize) -> Option<&Square> {
+        let new_row = square.row() as isize + row;
+        let new_col = square.col() as isize + col;
+
+        if !Self::within_bounds(new_row) || !Self::within_bounds(new_col) {
+            return None;
+        }
+
+        Some(&self.inner[new_row as usize - 1][new_col as usize - 1])
     }
 
     pub fn print(&self) {
         let border = "-".repeat(17);
 
         println!(" {}", border);
-        for row in self.inner {
+        for row in self.inner.iter().rev() {
             print!("| ");
             for cell in row {
                 if let Some(piece) = cell.piece {
@@ -42,16 +83,19 @@ impl Board {
         println!(" {}", border);
     }
 
-    fn init_positions(inner: &mut PositionMatrix) {
-        for (idx_r, row) in inner.iter_mut().enumerate() {
-            for (idx_c, cell) in row.iter_mut().enumerate() {
-                cell.row = idx_r;
-                cell.col = idx_c;
+    fn construct_matrix() -> Matrix {
+        let mut matrix = [[Default::default(); 8]; 8];
+
+        for (idx_r, row) in matrix.iter_mut().enumerate() {
+            for (idx_c, square) in row.iter_mut().enumerate() {
+                *square = Square::new(idx_c, idx_r, None);
             }
         }
+
+        matrix
     }
 
-    fn populate_piece_row(row: &mut PositionRow, color: Color) {
+    fn populate_piece_row(row: &mut Row, color: Color) {
         row[0].piece = Some(Piece::rook(color));
         row[7].piece = Some(Piece::rook(color));
         row[1].piece = Some(Piece::knight(color));
@@ -62,22 +106,14 @@ impl Board {
         row[4].piece = Some(Piece::queen(color));
     }
 
-    fn populate_pawns_row(row: &mut PositionRow, color: Color) {
+    fn populate_pawns_row(row: &mut Row, color: Color) {
         for place in row {
             place.piece = Some(Piece::pawn(color));
         }
     }
-}
 
-#[derive(Debug, Clone, Copy, Default)]
-pub struct Position {
-    col: usize,
-    row: usize,
-    piece: Option<Piece>,
-}
-
-impl Position {
-    pub fn new(col: usize, row: usize, piece: Option<Piece>) -> Self {
-        Self { col, row, piece }
+    #[inline]
+    fn within_bounds(value: isize) -> bool {
+        value < 8 && value >= 0
     }
 }
