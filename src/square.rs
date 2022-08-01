@@ -1,7 +1,7 @@
 use crate::{
     board::Board,
     piece::{Piece, PieceType},
-    ply::{pawn_plys, Ply},
+    ply::{king_plys, pawn_plys, Ply},
 };
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -28,6 +28,18 @@ impl Square {
         self.piece.is_none()
     }
 
+    pub fn is_occupied_by_opponent(&self, other: &Square) -> bool {
+        if other.piece.is_none() {
+            return false;
+        }
+
+        if self.piece.is_none() {
+            return false;
+        }
+
+        self.piece.unwrap().color() != other.piece.unwrap().color()
+    }
+
     pub fn valid_plys(&self, board: &Board) -> Vec<Ply> {
         if let Some(piece) = self.piece {
             match piece.ty() {
@@ -36,7 +48,7 @@ impl Square {
                 PieceType::Bishop => todo!(),
                 PieceType::Rook => todo!(),
                 PieceType::Queen => todo!(),
-                PieceType::King => todo!(),
+                PieceType::King => return king_plys(board, &self),
             }
         }
 

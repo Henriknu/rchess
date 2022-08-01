@@ -53,18 +53,14 @@ pub fn pawn_plys(board: &Board, square: &Square) -> Vec<Ply> {
     // Capture diagonally
 
     if let Some(left_diagonal_square) = board.get_relative_square(square, forward_row, -1) {
-        if let Some(other_piece) = left_diagonal_square.piece {
-            if piece.color() != other_piece.color() {
-                plys.push(Ply::new(*square, *left_diagonal_square))
-            }
+        if left_diagonal_square.is_occupied_by_opponent(square) {
+            plys.push(Ply::new(*square, *left_diagonal_square))
         }
     }
 
     if let Some(right_diagonal_square) = board.get_relative_square(square, forward_row, 1) {
-        if let Some(other_piece) = right_diagonal_square.piece {
-            if piece.color() != other_piece.color() {
-                plys.push(Ply::new(*square, *right_diagonal_square))
-            }
+        if right_diagonal_square.is_occupied_by_opponent(square) {
+            plys.push(Ply::new(*square, *right_diagonal_square))
         }
     }
 
@@ -75,24 +71,55 @@ pub fn pawn_plys(board: &Board, square: &Square) -> Vec<Ply> {
     plys
 }
 
-pub fn knight_plys(board: &Board, piece: &Piece) -> Vec<Ply> {
+pub fn knight_plys(board: &Board, square: &Square) -> Vec<Ply> {
     todo!()
 }
 
-pub fn bishop_plys(board: &Board, piece: &Piece) -> Vec<Ply> {
+pub fn bishop_plys(board: &Board, square: &Square) -> Vec<Ply> {
     todo!()
 }
 
-pub fn rook_plys(board: &Board, piece: &Piece) -> Vec<Ply> {
+pub fn rook_plys(board: &Board, square: &Square) -> Vec<Ply> {
     todo!()
 }
 
-pub fn queen_plys(board: &Board, piece: &Piece) -> Vec<Ply> {
+pub fn queen_plys(board: &Board, square: &Square) -> Vec<Ply> {
     todo!()
 }
 
-pub fn king_plys(board: &Board, piece: &Piece) -> Vec<Ply> {
-    todo!()
+pub fn king_plys(board: &Board, square: &Square) -> Vec<Ply> {
+    let mut plys = vec![];
+
+    let piece = square.piece.expect("Ply must include king piece");
+
+    assert_eq!(piece.ty(), PieceType::King);
+
+    // Move in any direction, as long as not occupied by own pieces
+
+    let directions = vec![
+        (1, 0),
+        (1, 1),
+        (0, 1),
+        (-1, 1),
+        (-1, 0),
+        (-1, -1),
+        (0, -1),
+        (1, -1),
+    ];
+
+    for (row, col) in directions {
+        if let Some(next_square) = board.get_relative_square(square, row, col) {
+            if next_square.is_unoccupied() || next_square.is_occupied_by_opponent(square) {
+                plys.push(Ply::new(*square, *next_square))
+            }
+        }
+    }
+
+    // TODO: Deal with check
+
+    // TODO: Deal with castling
+
+    plys
 }
 
 pub fn is_pawn_start_square(square: &Square, piece: &Piece) -> bool {
@@ -133,5 +160,58 @@ mod test {
         let plys = e4.valid_plys(&board);
 
         assert_eq!(plys.len(), 2);
+    }
+
+    #[test]
+    fn king() {
+        let mut board = Board::new();
+
+        // e4
+
+        let e2 = board.square(2, 5);
+
+        let plys = e2.valid_plys(&board);
+
+        board.make_ply(plys[1]);
+
+        // Ke2
+
+        let e1 = board.square(1, 5);
+
+        let plys = e1.valid_plys(&board);
+
+        assert_eq!(plys.len(), 1);
+
+        board.make_ply(plys[0]);
+
+        // Kd3
+
+        let e2 = board.square(2, 5);
+
+        let plys = e2.valid_plys(&board);
+
+        assert_eq!(plys.len(), 4);
+
+        board.make_ply(plys[3]);
+
+        // Kc4
+
+        let d3 = board.square(3, 4);
+
+        let plys = d3.valid_plys(&board);
+
+        assert_eq!(plys.len(), 5);
+
+        board.make_ply(plys[4]);
+
+        // Kc5
+
+        let c4 = board.square(4, 3);
+
+        let plys = c4.valid_plys(&board);
+
+        assert_eq!(plys.len(), 8);
+
+        board.make_ply(plys[0]);
     }
 }

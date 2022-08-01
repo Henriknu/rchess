@@ -102,8 +102,8 @@ impl Board {
         row[6].piece = Some(Piece::knight(color));
         row[2].piece = Some(Piece::bishop(color));
         row[5].piece = Some(Piece::bishop(color));
-        row[3].piece = Some(Piece::king(color));
-        row[4].piece = Some(Piece::queen(color));
+        row[3].piece = Some(Piece::queen(color));
+        row[4].piece = Some(Piece::king(color));
     }
 
     fn populate_pawns_row(row: &mut Row, color: Color) {
@@ -114,6 +114,6 @@ impl Board {
 
     #[inline]
     fn within_bounds(value: isize) -> bool {
-        value < 8 && value >= 0
+        value < 9 && value >= 1
     }
 }
